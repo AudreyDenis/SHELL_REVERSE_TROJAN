@@ -234,10 +234,18 @@ class Client:
         output += f"Processor: {uname.processor}\n"
         return output
 
+def printbanniere():
+    from os import system
+    from time import sleep
+    print(open('skull.txt').read())
+    system('cls')
+
 if __name__ == "__main__":
-    while 1: 
+    while 1:
+        printbanniere()
+        print(open("skull.txt").read())
         try : 
-            print(" Connexion au serveur ")
+            
             client = Client(SERVER_HOST, SERVER_PORT)
             client.start()
         except KeyboardInterrupt as e : 
