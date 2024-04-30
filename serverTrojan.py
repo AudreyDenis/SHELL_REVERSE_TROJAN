@@ -33,12 +33,12 @@ class Server:
         self.verbose = True
         
     def print_baniere(self):
-        print("\n"+"="*100+"\n"+"+"*100)
+        print("\n"+"="*80+"\n"+"+"*80)
         tprint(
             text=" Shell Trojan",
-            font='rnd-small',
+            font='rnd-medium',
         )
-        print("\n"+"#"*100+"\n"+"-"*100)
+        print("\n"+"#"*80+"\n"+"-"*80)
 
     def get_server_socket(self, custom_port=None):
         """
