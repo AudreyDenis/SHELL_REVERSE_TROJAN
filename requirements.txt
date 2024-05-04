@@ -1,6 +1,7 @@
-tabulate 
-tqdm
+tqdm 
 pyautogui
-scipy 
+sounddevice
+tabulate
+scipy
 psutil
-gputil
+GPUtil
