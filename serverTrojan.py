@@ -38,7 +38,7 @@ class Server:
             text=" Shell Trojan",
             font='rnd-small',
         )
-        print("\n"+"#"*80+"\n"+"-"*80)
+        print("\n"+"#"*80+"\n"+"-"*80, "\n", "< Copyright 2024 by Designer_242 >".center(80,'~'))
 
     def get_server_socket(self, custom_port=None):
         """
