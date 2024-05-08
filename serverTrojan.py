@@ -4,6 +4,8 @@ import re
 import os
 import tabulate
 import tqdm
+
+import utils
 #----------------------------------
 from datetime import datetime
 from threading import Thread
@@ -133,7 +135,9 @@ class Server:
                     connected_clients.append([index, client_host,client_port, cwd])
                     # Affichage des clients dans un tableau formatter 
                     print(tabulate.tabulate(connected_clients, headers=[" Index "," Addresse ", " Port ", " CWD "]))
-
+            elif (match := re.search(r"use\s*(\w*)", command)):
+                # Afficher l'utilitaire d'aide 
+                utils.help()
             elif (match := re.search(r"use\s*(\w*)", command)):
                 try:
                     # Recuperer Index client passer en parametre 
