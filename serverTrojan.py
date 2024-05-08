@@ -138,6 +138,7 @@ class Server:
             elif (match := re.search(r"use\s*(\w*)", command)):
                 # Afficher l'utilitaire d'aide 
                 utils.help()
+                
             elif (match := re.search(r"use\s*(\w*)", command)):
                 try:
                     # Recuperer Index client passer en parametre 
