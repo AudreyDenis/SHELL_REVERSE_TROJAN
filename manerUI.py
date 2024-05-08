@@ -1,8 +1,7 @@
 from os import system
 from time import sleep
-from os import path
-
-def chargement(message = 'Chargement en cours ...',tour = 2,sprite=['| ','/ ','- ',"\ "]):#-------------------------------------------------------------Juste pour le kiff :) !...
+from art import text2art
+def chargement(message = 'Chargement en cours ...',tour = 2,sprite=['| ','/ ','- ',"_",""]):#-------------------------------------------------------------Juste pour le kiff :) !...
     for i in range(0,tour):
         for j in sprite:
             print(message,j)
@@ -13,7 +12,6 @@ def chargement(message = 'Chargement en cours ...',tour = 2,sprite=['| ','/ ','-
     system('cls')
     
 class Option: #-------------------------------------------------------------Chaque element du menu est une option, une option peut etre un menu ou une fonction 
-    
     num_opt = 0 
     def __init__(self,libelle='Option',exe=object):
         Option.num_opt += 1
@@ -35,8 +33,7 @@ class Option: #-------------------------------------------------------------Chaq
         sleep(2)
         print('')
     
-class Menu(Option):
-    
+class Menu(Option):    
     def __init__(self,titre='Menu principale',options=list):
         Option.__init__(self,libelle=titre,exe=object())
         self.pagination = f'/  {self.libelle} '
@@ -57,8 +54,7 @@ class Menu(Option):
             print("\t|  0 - )  Quitter \n")
         else:
             print("\t|  0 - )  Retour  \n")
-        
-    
+
     def __choisit_option(self,page=''):
         try :
             choix = input("\t Entrer votre choix > ").strip()
@@ -274,7 +270,6 @@ if __name__ == "__main__":
                     ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
                     ==============================================================================
                                             MODULE MENU MAKE (UIManager)
-                    ------------------------------------------------------------------------------
                     [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]
           
                                 <<< It's your friend "Designer" from Congo/Brazza 242 >>>
@@ -282,16 +277,17 @@ if __name__ == "__main__":
                     I make this for help to create a console menu. It's one module of my projet.
                     I share it with you, and I hope you can join me on this project. For more 
                     information you can check my GitHub on this link []
-           
 
                     You don't can use this module like a main script, you just can use this like 
                     a imported module. But if you excute this like a main script, It doing show 
                     you a little demo of a MomoMTN's menu. 
+          
+                    If you want to join me on this project you can become a contribor on my GitHub's 
+                    project, you can again contact me by this mail <audreyndinga@gmail.com>
 
                     ==============================================================================
                                                     THANKS YOU 
 
-
         """ )
     sleep(8)
-    super_menu.run()   
+    super_menu.run() 
