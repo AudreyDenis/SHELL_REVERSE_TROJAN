@@ -1,7 +1,0 @@
-tabulate 
-tqdm
-pyautogui
-scipy 
-psutil
-gputil
-art 
